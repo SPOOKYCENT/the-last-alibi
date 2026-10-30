@@ -1,0 +1,862 @@
+# The Last Alibi
+
+A story-driven, console-based mystery game built in **C++17**.
+
+Players investigate a mystery through terminal-based scenes, character
+dialogue, branching choices, evidence collection, and a collection of
+logic, decoding, and strategy minigames. The project is designed to
+support solo play first, local co-op next, and potentially online
+multiplayer later.
+
+> **Project status:** Early planning / foundation stage. Features and
+> interfaces described below are targets, not claims that they are
+> already implemented.
+
+## Table of contents
+
+-   [Project vision](#project-vision)
+-   [Core experience](#core-experience)
+-   [Planned features](#planned-features)
+-   [Technology](#technology)
+-   [Repository structure](#repository-structure)
+-   [Architecture and
+    responsibilities](#architecture-and-responsibilities)
+-   [Minigame catalogue](#minigame-catalogue)
+-   [Multiplayer direction](#multiplayer-direction)
+-   [Development roadmap](#development-roadmap)
+-   [Getting started](#getting-started)
+-   [Build instructions](#build-instructions)
+-   [Contribution guide](#contribution-guide)
+-   [Code conventions](#code-conventions)
+-   [Testing expectations](#testing-expectations)
+-   [Git workflow](#git-workflow)
+-   [Design principles](#design-principles)
+-   [Future ideas](#future-ideas)
+
+## Project vision
+
+The Last Alibi combines the atmosphere of a detective story with the
+satisfaction of solving standalone puzzles.
+
+The game is played entirely through a terminal. Story scenes, narration,
+dialogue, menus, clues, and minigames are presented as console text. The
+presentation may use ANSI colors, ASCII layouts, typewriter-style
+output, pauses, and sound cues.
+
+The project has two major parts:
+
+1.  **Story experience:** scenes, dialogue, characters, choices,
+    investigation, and evidence.
+2.  **Minigame experience:** reusable puzzles and turn-based games that
+    challenge the player and provide information useful to the
+    investigation.
+
+These systems should remain modular. A minigame should not need to know
+how a scene is rendered, and the story engine should not need to know
+the internal algorithm used by a puzzle.
+
+## Core experience
+
+A typical gameplay loop is:
+
+1.  Enter a scene and read its narration.
+2.  Talk to characters or inspect objects.
+3.  Make choices that may unlock dialogue, evidence, or another scene.
+4.  Start a minigame when an investigation action requires it.
+5.  Receive a result, clue, code, or deduction opportunity.
+6.  Use collected evidence to unlock further interactions and progress.
+
+Minigames should feel relevant to the investigation. Their results can
+reveal a clue, eliminate a possibility, unlock a location, expose a
+contradiction, or provide information for a later puzzle.
+
+## Planned features
+
+### Terminal presentation
+
+-   Colored text and distinct styles for narration, dialogue, clues,
+    warnings, and system messages.
+-   Typewriter-style text with configurable speed.
+-   Scene headings, separators, ASCII art, and terminal menus.
+-   Optional sound effects and dramatic pauses.
+-   Input validation and graceful handling of invalid input.
+
+### Story and dialogue
+
+-   Data-driven scenes and dialogue.
+-   Multiple characters with distinct identities and dialogue.
+-   Branching choices and conditional dialogue.
+-   Scene transitions and chapter progression.
+-   Choices that can depend on previously collected evidence or
+    completed minigames.
+
+### Investigation and evidence
+
+-   Evidence collection and an evidence archive.
+-   Clues with unique IDs and descriptions.
+-   Conditions that unlock new choices or dialogue.
+-   Deduction steps that connect multiple clues.
+-   A clear distinction between discovering evidence and interpreting
+    it.
+
+### Minigames
+
+-   A common interface for launching and completing minigames.
+-   Difficulty levels, attempts, hints, scoring, and results.
+-   Randomized puzzle generation where appropriate.
+-   Reproducible random seeds in development and tests.
+-   Standalone minigame logic that can be tested without running the
+    full story.
+
+### Multiplayer direction
+
+-   Solo mode as the first implementation target.
+-   Local co-op on one terminal.
+-   Shared attempts, alternating turns, and joint decisions.
+-   Asymmetric puzzles in which players receive different information.
+-   Player-specific and shared state.
+-   Online multiplayer as a later extension, not a requirement for the
+    first release.
+
+## Technology
+
+  ---------------------------------------------------------------------------------------
+  Area                                Planned choice
+  ----------------------------------- ---------------------------------------------------
+  Language                            C++
+
+  Language standard                   C++17
+
+  Build system                        CMake
+
+  Story/configuration data            JSON and plain text
+
+  JSON library                        [nlohmann/json](https://github.com/nlohmann/json)
+
+  Version control                     Git
+
+  Testing                             C++ unit tests; framework to be selected
+
+  Terminal styling                    ANSI escape sequences, with platform-aware fallback
+
+  Randomness                          `<random>` and injectable seeds for tests
+  ---------------------------------------------------------------------------------------
+
+Keep external dependencies small. Add a dependency only when it provides
+a clear benefit and document how it is installed or included.
+
+## Repository structure
+
+The structure below is the intended direction. The repository may begin
+with fewer files and grow as features are implemented.
+
+``` text
+TheLastAlibi/
+├── CMakeLists.txt
+├── README.md
+├── .gitignore
+├── include/
+│   ├── core/
+│   │   ├── Game.h
+│   │   ├── GameState.h
+│   │   ├── GameConfig.h
+│   │   └── GameManager.h
+│   ├── terminal/
+│   │   ├── Terminal.h
+│   │   ├── Color.h
+│   │   ├── TextRenderer.h
+│   │   ├── InputHandler.h
+│   │   └── SoundManager.h
+│   ├── story/
+│   │   ├── StoryEngine.h
+│   │   ├── Scene.h
+│   │   ├── SceneManager.h
+│   │   ├── Dialogue.h
+│   │   ├── DialogueManager.h
+│   │   ├── Choice.h
+│   │   └── Condition.h
+│   ├── characters/
+│   │   ├── Character.h
+│   │   └── CharacterManager.h
+│   ├── evidence/
+│   │   ├── Evidence.h
+│   │   ├── EvidenceManager.h
+│   │   └── DeductionEngine.h
+│   ├── minigames/
+│   │   ├── Minigame.h
+│   │   ├── MinigameResult.h
+│   │   ├── MinigameManager.h
+│   │   ├── MinigameRegistry.h
+│   │   └── DifficultyManager.h
+│   ├── multiplayer/
+│   │   ├── Player.h
+│   │   ├── GameSession.h
+│   │   ├── TurnManager.h
+│   │   └── CoopManager.h
+│   ├── ai/
+│   │   ├── Minimax.h
+│   │   ├── AlphaBeta.h
+│   │   └── EvaluationFunction.h
+│   └── save/
+│       └── SaveManager.h
+├── src/
+│   ├── core/
+│   ├── terminal/
+│   ├── story/
+│   ├── characters/
+│   ├── evidence/
+│   ├── minigames/
+│   ├── multiplayer/
+│   ├── ai/
+│   └── save/
+├── minigames/
+│   ├── NumberGuessing.cpp
+│   ├── Mastermind.cpp
+│   ├── Wordle.cpp
+│   ├── CaesarCipher.cpp
+│   └── Nim.cpp
+├── data/
+│   ├── story/
+│   │   ├── chapters/
+│   │   └── scenes/
+│   ├── characters/
+│   ├── evidence/
+│   ├── minigames/
+│   └── configuration/
+├── assets/
+│   └── audio/
+├── saves/
+└── tests/
+    ├── core/
+    ├── story/
+    ├── evidence/
+    └── minigames/
+```
+
+### Directory rules
+
+-   `include/` contains public declarations and interfaces.
+-   `src/` contains implementations for the main systems.
+-   `minigames/` contains individual minigame implementations. As the
+    collection grows, these can be grouped into subdirectories.
+-   `data/` contains story content and puzzle configuration, not C++
+    source code.
+-   `assets/` contains optional runtime assets such as sound files.
+-   `saves/` contains local save data. Personal save files should not be
+    committed.
+-   `tests/` contains automated tests.
+
+The exact structure can evolve. Avoid creating empty files or
+directories merely to match this diagram; add them when they have a
+defined responsibility.
+
+## Architecture and responsibilities
+
+### Core
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `Game`                              Owns the main game lifecycle and
+                                      starts the game.
+
+  `GameState`                         Tracks current progress and active
+                                      state.
+
+  `GameConfig`                        Stores settings such as difficulty,
+                                      text speed, and sound.
+
+  `GameManager`                       Coordinates transitions between
+                                      major systems.
+  -----------------------------------------------------------------------
+
+### Terminal
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `Terminal`                          Screen clearing and
+                                      platform-specific terminal
+                                      utilities.
+
+  `Color`                             ANSI colors and text styles.
+
+  `TextRenderer`                      Narration, dialogue, typewriter
+                                      effects, and formatting.
+
+  `InputHandler`                      Reads and validates player input.
+
+  `SoundManager`                      Plays optional sound cues and
+                                      respects sound settings.
+  -----------------------------------------------------------------------
+
+### Story
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `StoryEngine`                       Runs story progression.
+
+  `Scene`                             Represents a scene and its content.
+
+  `SceneManager`                      Loads scenes and handles
+                                      transitions.
+
+  `Dialogue`                          Represents a dialogue line or
+                                      exchange.
+
+  `DialogueManager`                   Presents dialogue and handles
+                                      dialogue sequences.
+
+  `Choice`                            Represents a player decision and
+                                      its possible outcome.
+
+  `Condition`                         Evaluates requirements for choices,
+                                      dialogue, and scene access.
+  -----------------------------------------------------------------------
+
+### Characters
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `Character`                         Character ID, display name,
+                                      description, and other attributes.
+
+  `CharacterManager`                  Loads and retrieves character
+                                      definitions.
+  -----------------------------------------------------------------------
+
+Character knowledge and relationships can be introduced when the story
+requires them. Avoid complex relationship mechanics before there is a
+concrete use case.
+
+### Evidence
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `Evidence`                          One clue or piece of evidence.
+
+  `EvidenceManager`                   Stores and retrieves discovered
+                                      evidence.
+
+  `DeductionEngine`                   Checks whether a conclusion is
+                                      supported by required evidence.
+  -----------------------------------------------------------------------
+
+### Minigames
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `Minigame`                          Common interface for all minigames.
+
+  `MinigameResult`                    Completion status, score, attempts,
+                                      answer, and unlocked results.
+
+  `MinigameManager`                   Starts a minigame and receives its
+                                      result.
+
+  `MinigameRegistry`                  Maps stable IDs to available
+                                      minigames.
+
+  `DifficultyManager`                 Provides difficulty settings and
+                                      scaling rules.
+  -----------------------------------------------------------------------
+
+**Important boundary:** a minigame returns a result. It should not
+directly change the current scene, character dialogue, or story
+progression. The story or game layer decides how to use that result.
+
+### Multiplayer
+
+  Component       Responsibility
+  --------------- -----------------------------------------------------
+  `Player`        Player identity and player-specific state.
+  `GameSession`   State for one play session.
+  `TurnManager`   Controls turn order.
+  `CoopManager`   Coordinates shared objectives and cooperative play.
+
+For asymmetric co-op, distinguish information shared by the team from
+information visible only to one player. Online networking can be added
+after local co-op works reliably.
+
+### AI
+
+  -----------------------------------------------------------------------
+  Component                           Responsibility
+  ----------------------------------- -----------------------------------
+  `Minimax`                           Searches game states for an optimal
+                                      move in suitable turn-based games.
+
+  `AlphaBeta`                         Prunes minimax branches that cannot
+                                      affect the result.
+
+  `EvaluationFunction`                Scores non-terminal game states for
+                                      depth-limited search.
+  -----------------------------------------------------------------------
+
+AI algorithms should be reusable. A particular game supplies its legal
+moves, terminal-state rules, and evaluation logic.
+
+## Minigame catalogue
+
+The catalogue is a pool of planned ideas, not a commitment to implement
+every game immediately.
+
+### Easy
+
+1.  Number Guessing
+2.  Dictionary / Phonebook Search
+3.  Pattern Recognition
+4.  Memory Sequence
+5.  Wordle
+6.  Evidence Sorting
+7.  Spot the Difference
+8.  Simple Anagram
+
+### Medium
+
+9.  Caesar Cipher
+10. Map-Based Deciphering
+11. Mastermind / Code Breaker
+12. Logic Grid
+13. Timeline Reconstruction
+14. Arithmetic Lock
+15. Word Ladder
+16. Substitution Cipher
+17. Route and Maze Puzzle
+18. Truth, Lies, and Witness Statements
+19. Black-box Rule Discovery
+20. Sequence / Missing Data
+
+### Hard
+
+21. Frequency Analysis
+22. Multi-Stage Cipher Chain
+23. Constraint Satisfaction Puzzle
+24. Lights Out / Switch Puzzle
+25. Nonogram / Picture Logic
+26. River-Crossing / Resource Transfer
+27. Shortest Path with Restrictions
+28. Graph Deduction
+29. Information-Efficient Questioning
+30. Evidence Dependency Network
+31. Deduction from Partial Evidence
+32. Scheduling and Overlapping Intervals
+33. Permutation Reconstruction
+34. Binary Search with Lies
+35. Secret Code with Limited Queries
+
+### Advanced algorithmic and interactive-inspired puzzles
+
+36. Find the Hidden Item
+37. Find the Hidden Anomaly
+38. Password Cracking
+39. Hidden Structure Reconstruction
+40. Hidden-Object Search on a Graph
+41. Interactive Comparison Oracle
+42. Noisy Oracle
+43. Encode and Decode
+44. Find the Hidden Permutation
+45. Interactive Grid Search
+46. Adaptive Twenty Questions
+47. Unknown Machine / Protocol Reverse Engineering
+48. Graph Game with Hidden Edges
+49. Construct the Code
+50. Interactive Binary Search with Changing Conditions
+
+### Turn-based games against the computer
+
+51. Nim
+52. Take-Away Game
+53. Misère Game
+54. Tic-Tac-Toe
+55. Connect Four
+56. Mini Chess / Custom Board Duel
+57. Battleship Deduction
+58. Mastermind Duel
+59. Bluffing / Hidden-Role Deduction
+60. Pursuit-Evasion Game
+61. Strategic Door / Resource Game
+62. Custom Mystery Duel
+63. Adversarial Puzzle Setter
+
+### Implementation priority
+
+Start with a small set that exercises different programming concepts:
+
+1.  Number Guessing --- random generation and input handling.
+2.  Mastermind --- candidate feedback and attempt management.
+3.  Wordle --- string processing and repeated-letter handling.
+4.  Caesar Cipher --- encoding and decoding.
+5.  Nim --- turn-based rules and optimal strategy.
+
+After these work cleanly, expand into logic puzzles,
+interactive-inspired challenges, and more complex adversarial games.
+
+## Multiplayer direction
+
+The intended progression is:
+
+1.  **Solo:** one player uses one terminal.
+2.  **Local co-op:** two players share a terminal and take turns.
+3.  **Asymmetric co-op:** players receive different clues or puzzle
+    information.
+4.  **Player versus computer:** a human plays a turn-based game against
+    an AI.
+5.  **Online co-op:** separate computers share a synchronized session.
+
+Co-op mechanics to consider:
+
+-   Shared attempt or hint budgets.
+-   Different clues for each player.
+-   Split search ranges or independent puzzle stages.
+-   Alternating turns.
+-   Joint confirmation before submitting an answer.
+-   Shared timers and limited communication.
+-   Player-specific roles or abilities.
+
+Do not implement networking in the first milestone. Keep session and
+player concepts reasonably independent of terminal input so that
+networking can be added later without rewriting puzzle rules.
+
+## Development roadmap
+
+### Phase 1 --- Project foundation
+
+-   [ ] Set up CMake and the C++17 build.
+-   [ ] Add the main game loop.
+-   [ ] Implement terminal colors and basic layout helpers.
+-   [ ] Implement input validation.
+-   [ ] Add basic configuration settings.
+
+### Phase 2 --- Story presentation
+
+-   [ ] Implement narration and dialogue rendering.
+-   [ ] Implement scenes and scene transitions.
+-   [ ] Implement numbered choices.
+-   [ ] Load a small scene from external data.
+-   [ ] Add conditional choices.
+
+### Phase 3 --- Minigame framework
+
+-   [ ] Define the common minigame interface.
+-   [ ] Define the minigame result type.
+-   [ ] Implement registration and lookup by ID.
+-   [ ] Add difficulty and hint handling.
+-   [ ] Add deterministic random seeds for tests.
+
+### Phase 4 --- First minigames
+
+-   [ ] Number Guessing
+-   [ ] Mastermind
+-   [ ] Wordle
+-   [ ] Caesar Cipher
+-   [ ] Nim
+
+### Phase 5 --- Evidence and integration
+
+-   [ ] Implement evidence storage.
+-   [ ] Allow minigame results to unlock evidence.
+-   [ ] Allow evidence to unlock dialogue and choices.
+-   [ ] Add a small end-to-end playable sequence.
+
+### Phase 6 --- Local co-op
+
+-   [ ] Add player identities.
+-   [ ] Add turn management.
+-   [ ] Add shared and player-specific state.
+-   [ ] Add one asymmetric cooperative puzzle.
+
+### Phase 7 --- Advanced puzzles and AI
+
+-   [ ] Add minimax.
+-   [ ] Add alpha-beta pruning.
+-   [ ] Add a game using the shared AI implementation.
+-   [ ] Add selected graph and interactive-inspired puzzles.
+
+### Phase 8 --- Persistence and online play
+
+-   [ ] Save and load progress.
+-   [ ] Handle invalid or incomplete save data.
+-   [ ] Design session synchronization.
+-   [ ] Add online networking only when local sessions are stable.
+
+## Getting started
+
+### Requirements
+
+-   A C++17-compatible compiler (GCC, Clang, or MSVC).
+-   CMake 3.16 or later.
+-   Git.
+-   A terminal that supports ANSI escape sequences for the intended
+    colored presentation.
+
+Exact minimum compiler versions may be adjusted as the project selects
+dependencies and build settings.
+
+### Clone the repository
+
+``` bash
+git clone <repository-url>
+cd TheLastAlibi
+```
+
+Replace `<repository-url>` with the repository's actual clone URL.
+
+### Build with CMake
+
+Once `CMakeLists.txt` is configured:
+
+``` bash
+cmake -S . -B build
+cmake --build build
+```
+
+Run the executable from the generated build location. The exact path
+depends on the operating system and generator.
+
+### Simple direct compilation
+
+For an early single-file prototype:
+
+``` bash
+g++ -std=c++17 -Wall -Wextra -pedantic main.cpp -o TheLastAlibi
+```
+
+Windows:
+
+``` powershell
+.\TheLastAlibi.exe
+```
+
+Linux/macOS:
+
+``` bash
+./TheLastAlibi
+```
+
+## Contribution guide
+
+Contributions are welcome. Before implementing a large feature, open an
+issue or discuss the proposed change so that its scope and architecture
+can be agreed upon.
+
+### Good first contributions
+
+-   Fix an input-validation or edge-case bug.
+-   Add unit tests for an existing puzzle.
+-   Add a new puzzle that uses the common minigame interface.
+-   Improve terminal rendering or cross-platform behavior.
+-   Add a data-driven example scene.
+-   Improve documentation.
+
+### Before starting work
+
+1.  Read this README and the relevant module documentation.
+2.  Check existing issues and pull requests to avoid duplicate work.
+3.  Agree on the feature's expected behavior and interface.
+4.  Create a focused branch.
+5.  Keep changes limited to the feature or fix.
+
+### Adding a new minigame
+
+A new minigame should:
+
+1.  Have a clear objective and unambiguous rules.
+2.  Implement the shared minigame interface.
+3.  Keep puzzle logic separate from terminal presentation.
+4.  Validate all user input.
+5.  Handle invalid input without corrupting the game state.
+6.  Return a structured result.
+7.  Support difficulty configuration where appropriate.
+8.  Use injectable or controlled randomness when random generation is
+    involved.
+9.  Include tests for normal cases, edge cases, and failure cases.
+10. Document how it is registered and launched.
+
+A minigame should not directly print story dialogue, add evidence to
+global state, or change the current scene. Return the information needed
+by the caller and let the appropriate system handle it.
+
+### Adding a scene or dialogue
+
+Story content should live under `data/story/`, with character
+definitions under `data/characters/`.
+
+When adding content:
+
+-   Use stable, unique IDs.
+-   Reference characters and evidence by ID, not display name.
+-   Check that every scene transition points to an existing scene.
+-   Check that every minigame reference resolves to a registered
+    minigame.
+-   Make conditions explicit.
+-   Avoid embedding C++ logic in story data.
+-   Include a short description of any new data fields.
+
+### Pull request checklist
+
+-   [ ] The change has a clear and limited purpose.
+-   [ ] The project builds successfully.
+-   [ ] Relevant tests pass.
+-   [ ] New logic has appropriate tests.
+-   [ ] No unrelated generated files or personal save data are included.
+-   [ ] Public interfaces and data formats are documented.
+-   [ ] The README or relevant documentation is updated when needed.
+
+## Code conventions
+
+Consistency matters more than any particular style. Use these
+conventions unless the project adopts a formatter or style configuration
+that supersedes them.
+
+### Naming
+
+  Element                Convention        Example
+  ---------------------- ----------------- --------------------
+  Classes / structs      PascalCase        `MinigameManager`
+  Functions              camelCase         `startMinigame()`
+  Variables              camelCase         `attemptCount`
+  Constants              `kPascalCase`     `kMaxAttempts`
+  Enum types             PascalCase        `Difficulty`
+  Enum values            PascalCase        `Difficulty::Hard`
+  Header files           Match type name   `GameState.h`
+  Implementation files   Match header      `GameState.cpp`
+
+### C++ practices
+
+-   Prefer clear ownership and RAII.
+-   Prefer standard-library containers and utilities.
+-   Avoid raw owning pointers.
+-   Use `const` wherever practical.
+-   Pass large read-only objects by `const` reference.
+-   Use `enum class` for scoped enumerations.
+-   Keep functions focused and reasonably small.
+-   Avoid global mutable state.
+-   Separate declarations from implementations where appropriate.
+-   Use meaningful names rather than unexplained abbreviations.
+-   Handle input and file errors explicitly.
+-   Do not use `using namespace std;` in header files.
+
+### Architecture boundaries
+
+-   Terminal code displays information and reads input; it should not
+    own story rules.
+-   Story code decides what happens next; it should not implement puzzle
+    algorithms.
+-   Minigames implement their own rules and return results.
+-   Evidence code stores and evaluates clues; it should not render the
+    terminal UI.
+-   AI code should operate on game states and legal moves, not read
+    directly from `std::cin`.
+-   Multiplayer code coordinates players and sessions; puzzle rules
+    should remain reusable.
+
+## Testing expectations
+
+Test game logic independently from the terminal wherever possible.
+
+Examples:
+
+-   Number Guessing: lower/upper bounds, attempt limits, and win/loss
+    outcomes.
+-   Mastermind: repeated symbols and correct-position versus
+    correct-symbol feedback.
+-   Wordle: repeated letters and letter-count correctness.
+-   Caesar Cipher: shifts, wraparound, and non-letter characters.
+-   Nim: legal moves, terminal states, and optimal strategy.
+-   Story engine: valid transitions, missing scene IDs, and conditional
+    choices.
+-   Evidence: duplicate discovery and deduction requirements.
+-   Multiplayer: turn order and shared/private state separation.
+
+Tests should not depend on a particular random outcome. Inject a known
+seed or test input when deterministic behavior is required.
+
+## Git workflow
+
+A simple feature-branch workflow is recommended:
+
+``` bash
+git checkout main
+git pull
+git checkout -b feature/wordle-minigame
+
+# Make and test your changes.
+
+git add .
+git commit -m "Add Wordle minigame"
+git push -u origin feature/wordle-minigame
+```
+
+Open a pull request against the main development branch.
+
+Suggested branch names:
+
+-   `feature/scene-engine`
+-   `feature/number-guessing`
+-   `feature/local-coop`
+-   `fix/wordle-repeated-letters`
+-   `docs/contribution-guide`
+
+Suggested commit messages:
+
+-   `Add terminal text renderer`
+-   `Implement scene transitions`
+-   `Add Mastermind feedback logic`
+-   `Fix invalid input handling`
+-   `Document minigame interface`
+
+Do not commit build directories, executable binaries, local save files,
+IDE-specific personal settings, or secrets.
+
+## Design principles
+
+1.  **Modularity:** each system should have one clear responsibility.
+2.  **Extensibility:** adding a scene or minigame should not require
+    rewriting the game loop.
+3.  **Testability:** puzzle rules and story conditions should be
+    testable without interactive terminal input.
+4.  **Data-driven content:** keep dialogue, narration, and puzzle
+    configuration outside compiled code when practical.
+5.  **Determinism in tests:** random puzzles should support controlled
+    seeds.
+6.  **Meaningful co-op:** multiplayer should create collaboration, not
+    merely duplicate the same screen.
+7.  **Graceful failure:** invalid input, missing data, and interrupted
+    sessions should not crash the game unnecessarily.
+8.  **Cross-platform awareness:** terminal colors and sound should have
+    fallbacks where platform support differs.
+9.  **Incremental development:** implement and test a small vertical
+    slice before expanding the architecture.
+10. **Readable code:** optimize for contributors understanding and
+    extending the project.
+
+## Future ideas
+
+Potential extensions include:
+
+-   Multiple cases and branching endings.
+-   Replayable cases with randomized puzzle parameters.
+-   Evidence boards and connected deductions.
+-   Optional hints with scoring consequences.
+-   Local co-op with asymmetric information.
+-   Online co-op and session recovery.
+-   AI opponents with selectable difficulty.
+-   Additional graph, search, logic, and game-theory challenges.
+-   A content validation tool for scene and puzzle data.
+
+## Project status and scope
+
+The initial goal is to create a reliable terminal game foundation, a
+reusable scene/dialogue engine, and a small set of polished minigames.
+The project should expand only after these foundations are tested.
+
+The architecture and catalogue in this README are planning documents.
+Update this file as implementation decisions become final, and clearly
+distinguish implemented features from planned features.
+
+**Have fun building The Last Alibi.**
