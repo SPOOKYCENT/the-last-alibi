@@ -21,7 +21,6 @@ void Terminal::printTitle(const string &title)
 
 void Terminal::inputLine()
 {
-    cout << endl;
     cout << Color::GRAY
          << "> "
          << Color::RESET
