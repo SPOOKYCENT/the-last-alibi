@@ -15,8 +15,17 @@ void Terminal::printTitle(const string &title)
          << Color::BOLD
          << "============================================\n"
          << "              " << title << "\n"
-         << "============================================\n"
+         << "============================================\n\n"
          << Color::RESET;
+}
+
+void Terminal::inputLine()
+{
+    cout << endl;
+    cout << Color::GRAY
+         << "> "
+         << Color::RESET
+         << flush;
 }
 
 void Terminal::pause()

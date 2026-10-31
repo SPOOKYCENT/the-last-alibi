@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 
 using namespace std;
@@ -23,6 +25,7 @@ namespace Terminal
 
     void printLine(const string &text);
     void printTitle(const string &title);
+    void inputLine();
     void pause();
     void divider();
     void clearScreen();

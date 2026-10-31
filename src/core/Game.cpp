@@ -1,17 +1,14 @@
 #include <iostream>
 #include "core/Game.h"
 #include "terminal/Terminal.h"
+#include "terminal/InputHandler.h"
 
 using namespace std;
 
 void Game::showTitleScreen()
 {
     Terminal::clearScreen();
-    cout << Terminal::Color::RED
-         << Terminal::Color::BOLD
-         << "The Last Alibi"
-         << Terminal::Color::RESET
-         << "\n";
+    Terminal::printTitle("The Last Alibi");
 }
 
 void Game::newGame()
@@ -36,35 +33,23 @@ void Game::showMainMenu()
 {
     while (running)
     {
-        Terminal::clearScreen();
-        cout << Terminal::Color::CYAN
-             << Terminal::Color::BOLD
-             << Terminal::Color::UNDERLINE
-             << "Main Menu:\n"
-             << Terminal::Color::RESET;
-
-        cout << "1. New Game\n";
-        cout << "2. Continue\n";
-        cout << "3. Settings\n";
-        cout << "4. Exit\n";
-
-        int choice;
-        cout << Terminal::Color::MAGENTA;
-        cin >> choice;
-        cout << Terminal::Color::RESET;
+        showTitleScreen();
+        int choice = InputHandler::selectMenu(
+            "Main Menu",
+            {"New Game", "Continue", "Settings", "Exit"});
 
         switch (choice)
         {
-        case 1:
+        case 0:
             newGame();
             break;
-        case 2:
+        case 1:
             continueGame();
             break;
-        case 3:
+        case 2:
             openSettings();
             break;
-        case 4:
+        case 3:
             running = false;
             Terminal::clearScreen();
             break;
@@ -77,6 +62,5 @@ void Game::showMainMenu()
 
 void Game::run()
 {
-    showTitleScreen();
     showMainMenu();
 }
