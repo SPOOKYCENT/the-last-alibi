@@ -8,11 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(the_last_alibi
-    
+    src/core/Game.cpp
+    src/terminal/Terminal.cpp
+    main.cpp
 )
 
 target_include_directories(the_last_alibi PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/include
 )
 
 target_compile_options(the_last_alibi PRIVATE
